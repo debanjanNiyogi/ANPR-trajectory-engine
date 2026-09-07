@@ -1,10 +1,6 @@
 """
 Reads plate text out of a cropped plate image using EasyOCR, with basic
-preprocessing (grayscale, contrast, resize) and plate-format cleanup.
-
-`validate_plate` uses an Indian-plate regex by default (e.g. "KA05MH1234")
-since PS127-style problem statements are typically evaluated on Indian
-traffic camera footage — swap the PLATE_REGEX for your target region.
+preprocessing, cleanup, and region-neutral plate validation.
 """
 import re
 import cv2
@@ -12,16 +8,12 @@ import numpy as np
 
 from config_loader import get_config
 
-# Standard Indian plate format: 2 letters, 2 digits, 1-2 letters, 4 digits
-PLATE_REGEX = re.compile(r"^[A-Z]{2}[0-9]{1,2}[A-Z]{1,2}[0-9]{4}$")
-
-# Characters EasyOCR commonly confuses on plates -> canonical correction
-CONFUSION_MAP = {"O": "0", "I": "1", "S": "5", "B": "8"}
+PLATE_TEXT_REGEX = re.compile(r"^[A-Z0-9]{4,12}$")
 
 
 def _preprocess(crop: np.ndarray) -> np.ndarray:
     gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
-    gray = cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+    gray = cv2.resize(gray, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)
     gray = cv2.equalizeHist(gray)
     gray = cv2.bilateralFilter(gray, 11, 17, 17)
     _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
@@ -34,7 +26,8 @@ def clean_plate_text(raw: str) -> str:
 
 
 def validate_plate(text: str) -> bool:
-    return bool(PLATE_REGEX.match(text))
+    """Accept common plate text across regions without enforcing a format."""
+    return bool(PLATE_TEXT_REGEX.fullmatch(text))
 
 
 class OCRReader:
@@ -56,7 +49,11 @@ class OCRReader:
             return None
         reader = self._load()
         processed = _preprocess(crop)
-        results = reader.readtext(processed)
+        results = reader.readtext(
+            processed,
+            allowlist="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+            paragraph=False,
+        )
         if not results:
             return None
 

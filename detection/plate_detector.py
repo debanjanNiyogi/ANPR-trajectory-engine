@@ -9,6 +9,7 @@ own annotated city footage). This wrapper is model-agnostic: any YOLOv8
 """
 from dataclasses import dataclass
 
+import cv2
 import numpy as np
 
 from config_loader import get_config
@@ -34,15 +35,45 @@ class PlateDetector:
             self._model = YOLO(self.model_path)
         return self._model
 
+    def _bright_plate_regions(self, frame: np.ndarray) -> list[Detection]:
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        mask = cv2.inRange(gray, 225, 255)
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        detections = []
+        for contour in contours:
+            x, y, width, height = cv2.boundingRect(contour)
+            aspect_ratio = width / max(height, 1)
+            if not (30 <= width <= 180 and 6 <= height <= 30 and 2.5 <= aspect_ratio <= 18):
+                continue
+            x1, y1 = max(0, x - 3), max(0, y - 3)
+            x2, y2 = min(frame.shape[1], x + width + 3), min(frame.shape[0], y + height + 3)
+            detections.append(Detection(
+                bbox=(x1, y1, x2, y2), confidence=1.0,
+                crop=frame[y1:y2, x1:x2],
+            ))
+        return detections
+
     def detect(self, frame: np.ndarray) -> list[Detection]:
         """Run plate detection on a single BGR frame, return crops ready for OCR."""
         model = self._load()
         results = model.predict(frame, conf=self.conf_threshold, verbose=False)
+        has_plate_class = any("plate" in str(name).lower() for name in model.names.values())
 
         detections = []
         for r in results:
             for box in r.boxes:
-                x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+                class_id = int(box.cls[0])
+                if not has_plate_class:
+                    if class_id not in {2, 3, 5, 7}:
+                        continue
+                    vehicle_x1, vehicle_y1, vehicle_x2, vehicle_y2 = map(int, box.xyxy[0].tolist())
+                    vehicle_height = vehicle_y2 - vehicle_y1
+                    x1, y1, x2, y2 = (
+                        vehicle_x1, vehicle_y1 + int(vehicle_height * 0.55),
+                        vehicle_x2, vehicle_y2,
+                    )
+                else:
+                    x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
                 conf = float(box.conf[0])
                 x1, y1 = max(0, x1), max(0, y1)
                 x2, y2 = min(frame.shape[1], x2), min(frame.shape[0], y2)
@@ -50,7 +81,7 @@ class PlateDetector:
                     continue
                 crop = frame[y1:y2, x1:x2]
                 detections.append(Detection(bbox=(x1, y1, x2, y2), confidence=conf, crop=crop))
-        return detections
+            return detections or self._bright_plate_regions(frame) if not has_plate_class else detections
 
 
 class VehicleDetector:

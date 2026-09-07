@@ -25,8 +25,8 @@ database:
 detection:
   plate_model_path: "models/plate_yolov8.pt"   # your fine-tuned plate detector
   vehicle_model_path: "yolov8n.pt"             # generic vehicle detector (COCO)
-  confidence_threshold: 0.45
-  ocr_confidence_threshold: 0.35
+  confidence_threshold: 0.20
+  ocr_confidence_threshold: 0.20
   frame_skip: 2          # process every Nth frame (perf tuning)
 
 analytics:
