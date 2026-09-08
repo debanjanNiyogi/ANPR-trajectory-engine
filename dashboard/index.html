@@ -464,7 +464,7 @@ setInterval(loadAlerts, 5000);
 // ─── Road Network Map (Leaflet) ────────────────────────────────
 (function initNetworkMap() {
   const MAP_DEFAULTS = { center: [28.6315, 77.2167], zoom: 16, locality: 'Connaught Place, New Delhi', radius_m: 600 };
-  const DATA_BASE = '../map/data';
+  const DATA_BASE = '${API}/map/data';
 
   function roadColor(hw) {
     if (!hw) return '#4fc3f7';
