@@ -1,14 +1,16 @@
-ultralytics>=8.2.0        # YOLOv8 for plate/vehicle detection
-easyocr>=1.7.1             # OCR for reading plate text
+ultralytics>=8.2.0
+easyocr>=1.7.1
 opencv-python>=4.9.0
 numpy>=1.26.0
 fastapi>=0.111.0
-python-multipart>=0.0.9
 uvicorn>=0.29.0
 pyyaml>=6.0.1
 python-dateutil>=2.9.0
 pydantic>=2.7.0
-osmnx>=1.9.0               # OpenStreetMap road-network extraction
-scikit-learn>=1.4.0        # Required by OSMnx nearest-node routing
-folium>=0.16.0              # Leaflet-based map rendering (Python)
-psycopg2-binary>=2.9.9      # PostgreSQL driver (only needed if database.type: postgres)
+osmnx>=1.9.0
+scikit-learn>=1.4.0
+folium>=0.16.0
+psycopg2-binary>=2.9.9
+
+# Useful for exporting/debugging
+pandas>=2.0.0

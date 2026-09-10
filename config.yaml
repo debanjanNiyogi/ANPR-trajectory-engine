@@ -23,11 +23,18 @@ database:
   # pool_max: 20
 
 detection:
-  plate_model_path: "models/plate_yolov8.pt"   # your fine-tuned plate detector
-  vehicle_model_path: "yolov8n.pt"             # generic vehicle detector (COCO)
-  confidence_threshold: 0.20
+  plate_model_path: "models/plate_yolov8.pt"
+  vehicle_model_path: "yolov8n.pt"
+
+  confidence_threshold: 0.25
   ocr_confidence_threshold: 0.20
-  frame_skip: 2          # process every Nth frame (perf tuning)
+
+  frame_skip: 1
+
+  # EasyOCR:
+  # false = works on CPU
+  # true  = use GPU if CUDA/PyTorch is correctly installed
+  ocr_gpu: false
 
 analytics:
   congestion_window_minutes: 5
@@ -50,8 +57,9 @@ alerting:
     route_deviation: true
     restricted_lane: true
     wrong_way: true
+
   notifications:
-    log: false
+    log: true
     webhook_url: null
     timeout_seconds: 5
 
